@@ -6,6 +6,4 @@ public interface UsuarioServices {
 
     public void addNewUser(UsuarioEntity usuario);
 
-
-
 }

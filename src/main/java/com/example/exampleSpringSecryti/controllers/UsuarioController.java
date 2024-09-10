@@ -57,15 +57,13 @@ public class UsuarioController {
 
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
-        System.out.println(response);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/register")
     public ResponseEntity<String> addNewUser(@RequestBody UsuarioEntity usuario){
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
-        services.addNewUser(usuario);
-        return ResponseEntity.ok("Usuario guardado correctamente");
+        return ResponseEntity.ok(services.addNewUser(usuario));
     }
 
 }

@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 @Service
 @ComponentScan
@@ -22,17 +23,27 @@ public class UsuarioServicesImpl implements UserDetailsService {
     @Autowired
     private UsuarioRepositorie repositorie;
 
-    public void addNewUser(UsuarioEntity usuario) {
-        repositorie.save(usuario);
+    public String addNewUser(UsuarioEntity usuario) {
+
+        Optional<UsuarioEntity> existingUser = repositorie.findByname(usuario.getName());
+        Optional<UsuarioEntity> existingEmail = repositorie.findByEmail(usuario.getEmail());
+
+        if (existingUser.isPresent())  return "Usuario ya registrado, intenta con un nuevo usuario";
+        if (existingEmail.isPresent())  return "Correo ya registrado, intenta con un nuevo correo";
+
+        return " " + repositorie.save(usuario);
+
     }
 
     @Override
     public UserDetails loadUserByUsername(String name) throws UsernameNotFoundException {
-       UsuarioEntity usuario = repositorie.findByname(name);
-       if (usuario == null){
+        Optional<UsuarioEntity> usuario = repositorie.findByname(name);
+       if (usuario.isEmpty()){
            throw new UsernameNotFoundException("Usuario no encontrado");
        }
-       else return new org.springframework.security.core.userdetails.User(usuario.getName(), usuario.getPassword(), new ArrayList<>());
+       UsuarioEntity usuarioEntity = usuario.get();
+
+       return new User(usuarioEntity.getName(), usuarioEntity.getPassword(), new ArrayList<>());
 
     }
 
@@ -41,11 +52,12 @@ public class UsuarioServicesImpl implements UserDetailsService {
 
         String name = ((User) authentication.getPrincipal()).getUsername();
 
-        UsuarioEntity usuario = repositorie.findByname(name);
-        if (usuario == null){
-            throw new UsernameNotFoundException("Usuarionno encontrado ");
+        Optional<UsuarioEntity> optionalUsuario = repositorie.findByname(name);
+
+        if (optionalUsuario.isEmpty()) {
+            throw new UsernameNotFoundException("Usuario no encontrado");
         }
-        System.out.println(usuario.getName() + " " + usuario.getEmail() + " " + usuario.getPassword() + " " + usuario.getId());
-        return usuario;
+
+        return optionalUsuario.get();
     }
 }

@@ -21,6 +21,7 @@ public class privateController {
     public ResponseEntity<UsuarioEntity> userProfile(@RequestHeader HttpHeaders headers){
         return ResponseEntity.ok(services.getLogingUser(headers));
     }
+
     @GetMapping("/example")
     public ResponseEntity<?> userExample(){
         return ResponseEntity.ok("Bienbenido usuario");
