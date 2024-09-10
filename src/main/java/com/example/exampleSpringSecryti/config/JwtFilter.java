@@ -2,9 +2,9 @@ package com.example.exampleSpringSecryti.config;
 
 import com.example.exampleSpringSecryti.dot.AuthRequest;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -43,20 +43,15 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         String authorizationHeader = request.getHeader("Authorization");
-        logger.info("Authorization Header: " + authorizationHeader);
         String token = null;
         String username = null;
 
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer")) {
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             token = authorizationHeader.substring(7);
             try {
                 username = extractUsername(token);
-                System.out.println("Username extracted from token: " + username);
-                logger.info("Username extraído del token: " + username);
             } catch (Exception e) {
-                logger.error("Error extrayendo el username del token: " + e.getMessage());
-//                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido");
-//                return;
+                logger.error("Error extrayendo el username del token: " + token + " : " + e.getMessage());
             }
         }
 
@@ -64,13 +59,12 @@ public class JwtFilter extends OncePerRequestFilter {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
             if (validateToken(token, userDetails)) {
-                logger.info("Token válido, autenticando al usuario: " + username);
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-                logger.info("Autenticación establecida para el usuario: " + username);
-            }else {
-                logger.warn("Token inválido o expirado para el usuario: " + username);
+            } else {
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token inválido o expirado.");
+                return;
             }
         }
 
@@ -97,22 +91,27 @@ public class JwtFilter extends OncePerRequestFilter {
                 .setSubject(request.getUsername())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 horas
-                .signWith(getSigningKey() ,SignatureAlgorithm.HS256)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-
     private Claims getClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (JwtException e) {
+            logger.error("Token inválido o firma incorrecta: " + e.getMessage());
+            return null;
+        }
     }
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(JWT_SECRET.getBytes());
     }
+}
 
 
 //    public static final String SECRET = "5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437";
@@ -251,4 +250,4 @@ public class JwtFilter extends OncePerRequestFilter {
 //                .parseClaimsJws(token)
 //                .getBody();
 //    }
-}
+
