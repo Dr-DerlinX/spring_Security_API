@@ -61,7 +61,7 @@ public class UsuarioController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/new")
+    @PostMapping("/register")
     public ResponseEntity<String> addNewUser(@RequestBody UsuarioEntity usuario){
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
         services.addNewUser(usuario);
